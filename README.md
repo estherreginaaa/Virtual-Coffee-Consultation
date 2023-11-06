@@ -1,2 +1,3 @@
 # Virtual-Coffee-Consultation
-Nama : Esther Regina
+* Nama : Esther Regina
+* NIM : 18221086
