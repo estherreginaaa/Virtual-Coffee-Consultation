@@ -1,0 +1,5 @@
+{"schedulingplatform": 
+[{"consultationID": 135678920, "advisorID": 200345678, "participantID": 301119997, "consultationDate": "2023-09-21", "consultationTime": "09:00:00"}, 
+{"consultationID": 123456789, "advisorID": 200203011, "participantID": 304568765, "consultationDate": "2023-09-19", "consultationTime": "15:30:00"}
+]
+}

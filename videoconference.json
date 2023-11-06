@@ -1,0 +1,5 @@
+{"videoconference": 
+[{"consultationID": 123456789, "participantID": 301119997, "advisorID": 200345678, "hostID": 123456, "consultationDate": "2023-09-21", "consultationTime": "09:00:00", "meetingPlatform": "Zoom", "meetingLink": "https://itb-ac-id.zoom.us/j/3926475309?pwd=Lzc3c1ZTSUZIWTNaOVE5dksxeDZUZz09"}, 
+{"consultationID": 135678920, "participantID": 301119997, "advisorID": 200345678, "hostID": 123457, "consultationDate": "2023-09-21", "consultationTime": "09:00:00", "meetingPlatform": "Zoom", "meetingLink": "https://itb-ac-id.zoom.us/j/3926472209?pwd=Lzc3c1ZTSUZIWTNaOVE5dksxeDZUZz09"}
+]
+}

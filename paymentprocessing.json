@@ -1,0 +1,5 @@
+{"paymentprocessing": 
+[{"consultationID": 135678920, "participantID": 301119997, "paymentID": 456789123, "amount": 200000, "status": "Unpaid"}, 
+{"consultationID": 167289345, "participantID": 304568765, "paymentID": 456786478, "amount": 300000, "status": "Paid"}
+]
+}
