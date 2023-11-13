@@ -1,6 +1,7 @@
-from fastapi import FastAPI, HTTPException, APIRouter
+from fastapi import Depends, FastAPI, HTTPException, APIRouter
 import json
 from pydantic import BaseModel
+from routers import auth
 
 class VidCon(BaseModel):
 	consultationID: int
@@ -21,12 +22,12 @@ with open(json_filename,"r") as read_file:
 router = APIRouter()
 
 @router.get('/videoconference')
-async def read_all_vidcon():
+async def read_all_vidcon(current_user: auth.User = Depends(auth.get_current_active_user)):
 	return data['videoconference']
 
 
 @router.get('/videoconference/{consultation_id}')
-async def read_vidcon(consultation_id: int):
+async def read_vidcon(consultation_id: int, current_user: auth.User = Depends(auth.get_current_active_user)):
 	for vidcon in data['videoconference']:
 		print(vidcon)
 		if vidcon['consultationID'] == consultation_id:
@@ -36,7 +37,7 @@ async def read_vidcon(consultation_id: int):
 	)
 
 @router.post('/videoconference')
-async def add_menu(vidcon: VidCon):
+async def add_menu(vidcon: VidCon, current_user: auth.User = Depends(auth.get_current_active_user)):
 	vidcon_dict = vidcon.dict()
 	vidcon_found = False
 	for vidcon in data['videoconference']:
@@ -55,7 +56,7 @@ async def add_menu(vidcon: VidCon):
 	)
 # put gabisa pake web browser testnya
 @router.put('/videoconference')
-async def update_menu(vidcon: VidCon):
+async def update_menu(vidcon: VidCon, current_user: auth.User = Depends(auth.get_current_active_user)):
 	vidcon_dict = vidcon.dict()
 	vidcon_found = False
 	for vidcon_idx, vidcon_item in enumerate(data['videoconference']):
@@ -74,7 +75,7 @@ async def update_menu(vidcon: VidCon):
 	)
 
 @router.delete('/videoconference/{consultation_id}')
-async def delete_menu(consultation_id: int):
+async def delete_menu(consultation_id: int, current_user: auth.User = Depends(auth.get_current_active_user)):
 
 	vidcon_found = False
 	for vidcon_idx, vidcon_item in enumerate(data['videoconference']):

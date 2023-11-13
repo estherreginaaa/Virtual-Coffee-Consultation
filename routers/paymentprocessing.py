@@ -1,6 +1,8 @@
-from fastapi import FastAPI, HTTPException, APIRouter
+from fastapi import Depends, FastAPI, HTTPException, APIRouter
 import json
 from pydantic import BaseModel
+from routers import auth
+
 
 class Payment(BaseModel):
     consultationID: int
@@ -18,12 +20,12 @@ with open(json_filename,"r") as read_file:
 router = APIRouter()
 
 @router.get('/paymentprocessing')
-async def read_all_payment():
+async def read_all_payment(current_user: auth.User = Depends(auth.get_current_active_user)):
 	return data['paymentprocessing']
 
 
 @router.get('/paymentprocessing/{consultation_id}')
-async def read_vidcon(consultation_id: int):
+async def read_vidcon(consultation_id: int,current_user: auth.User = Depends(auth.get_current_active_user) ):
 	for payment in data['paymentprocessing']:
 		print(payment)
 		if payment['consultationID'] == consultation_id:
@@ -33,7 +35,7 @@ async def read_vidcon(consultation_id: int):
 	)
 
 @router.post('/paymentprocessing')
-async def add_menu(payment: Payment):
+async def add_menu(payment: Payment, current_user: auth.User = Depends(auth.get_current_active_user)):
 	payment_dict = payment.dict()
 	payment_found = False
 	for payment in data['paymentprocessing']:
@@ -52,7 +54,7 @@ async def add_menu(payment: Payment):
 	)
 # put gabisa pake web browser testnya
 @router.put('/paymentprocessing')
-async def update_menu(payment: Payment):
+async def update_menu(payment: Payment, current_user: auth.User = Depends(auth.get_current_active_user)):
 	payment_dict = payment.dict()
 	payment_found = False
 	for payment_idx, payment_item in enumerate(data['paymentprocessing']):
@@ -71,7 +73,7 @@ async def update_menu(payment: Payment):
 	)
 
 @router.delete('/paymentprocessing/{consultation_id}')
-async def delete_menu(consultation_id: int):
+async def delete_menu(consultation_id: int, current_user: auth.User = Depends(auth.get_current_active_user)):
 
 	payment_found = False
 	for payment_idx, payment_item in enumerate(data['paymentprocessing']):

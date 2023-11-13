@@ -1,6 +1,7 @@
-from fastapi import FastAPI, HTTPException, APIRouter
+from fastapi import Depends, FastAPI, HTTPException, APIRouter
 import json
 from pydantic import BaseModel
+from routers import auth
 
 class Schedule(BaseModel):
 	consultationID: int
@@ -18,12 +19,12 @@ app = FastAPI()
 router = APIRouter()
 
 @router.get('/schedulingplatform')
-async def read_all_scheduling_platform():
+async def read_all_scheduling_platform(current_user: auth.User = Depends(auth.get_current_active_user)):
 	return data['schedulingplatform']
 
 
 @router.get('/schedulingplatform/{consultation_id}')
-async def read_schedulingplatform(consultation_id: int):
+async def read_schedulingplatform(consultation_id: int, current_user: auth.User = Depends(auth.get_current_active_user)):
 	for scheduling in data['schedulingplatform']:
 		print(scheduling)
 		if scheduling['consultationID'] == consultation_id:
@@ -33,7 +34,7 @@ async def read_schedulingplatform(consultation_id: int):
 	)
 
 @router.post('/schedulingplatform')
-async def add_menu(schedule: Schedule):
+async def add_menu(schedule: Schedule, current_user: auth.User = Depends(auth.get_current_active_user)):
 	schedule_dict = schedule.dict()
 	schedule_found = False
 	for scheduling in data['schedulingplatform']:
@@ -52,7 +53,7 @@ async def add_menu(schedule: Schedule):
 	)
 # put gabisa pake web browser testnya
 @router.put('/schedulingplatform')
-async def update_menu(schedule: Schedule):
+async def update_menu(schedule: Schedule, current_user: auth.User = Depends(auth.get_current_active_user)):
 	schedule_dict = schedule.dict()
 	schedule_found = False
 	for schedule_idx, schedule_item in enumerate(data['schedulingplatform']):
@@ -71,7 +72,7 @@ async def update_menu(schedule: Schedule):
 	)
 
 @router.delete('/schedulingplatform/{consultation_id}')
-async def delete_menu(consultation_id: int):
+async def delete_menu(consultation_id: int, current_user: auth.User = Depends(auth.get_current_active_user)):
 
 	schedule_found = False
 	for schedule_idx, schedule_item in enumerate(data['schedulingplatform']):
