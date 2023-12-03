@@ -1,94 +1,72 @@
 from fastapi import Depends, FastAPI, HTTPException, APIRouter
-import json
 from pydantic import BaseModel
-from routers import auth
+from pymongo import MongoClient
+from routers import auth 
 
 class VidCon(BaseModel):
-	consultationID: int
-	participantID: int
-	advisorID: int
-	hostID: int
-	consultationDate: str
-	consultationTime: str
-	meetingPlatform: str
-	meetingLink: str
+    consultationID: int
+    participantID: int
+    advisorID: int
+    hostID: int
+    consultationDate: str
+    consultationTime: str
+    meetingPlatform: str
+    meetingLink: str
 
-json_filename="videoconference.json"
-
-with open(json_filename,"r") as read_file:
-	data = json.load(read_file)
-
-# app = FastAPI()
+app = FastAPI()
 router = APIRouter()
+
+client = MongoClient("mongodb+srv://admin:admin123@cluster0.07z4doa.mongodb.net/?retryWrites=true&w=majority")
+db = client["VirtualCoffeeConsultation"]
+collection = db["videoconference"]
+
+def convert_id(vidcon):
+    vidcon['_id'] = str(vidcon['_id'])
+    return vidcon
 
 @router.get('/videoconference')
 async def read_all_vidcon(current_user: auth.User = Depends(auth.get_current_active_user)):
-	return data['videoconference']
-
+    return list(map(convert_id, collection.find()))
 
 @router.get('/videoconference/{consultation_id}')
 async def read_vidcon(consultation_id: int, current_user: auth.User = Depends(auth.get_current_active_user)):
-	for vidcon in data['videoconference']:
-		print(vidcon)
-		if vidcon['consultationID'] == consultation_id:
-			return vidcon
-	raise HTTPException(
-		status_code=404, detail=f'menu not found'
-	)
+    vidcon = collection.find_one({"consultationID": consultation_id})
+    if vidcon:
+        return convert_id(vidcon)
+    raise HTTPException(status_code=404, detail=f'VidCon with consultationID {consultation_id} not found')
 
 @router.post('/videoconference')
-async def add_menu(vidcon: VidCon, current_user: auth.User = Depends(auth.get_current_active_user)):
-	vidcon_dict = vidcon.dict()
-	vidcon_found = False
-	for vidcon in data['videoconference']:
-		if vidcon['consultationID'] == vidcon_dict['consultationID']:
-			vidcon_found = True
-			return "Consultation consultationID "+str(vidcon_dict['consultationID'])+" exists."
-	
-	if not vidcon_found:
-		data['videoconference'].append(vidcon_dict)
-		with open(json_filename,"w") as write_file:
-			json.dump(data, write_file)
+async def add_vidcon(vidcon: VidCon, current_user: auth.User = Depends(auth.get_current_active_user)):
+    vidcon_dict = vidcon.dict()
+    required_params = VidCon.__annotations__.keys()
+    provided_params = vidcon_dict.keys()
+    
+    # Check if all required parameters are provided
+    if set(required_params).issubset(provided_params):
+        existing_vidcon = collection.find_one({"consultationID": vidcon_dict['consultationID']})
+        if existing_vidcon:
+            return f"VidCon for consultationID {vidcon_dict['consultationID']} exists."
+        
+        inserted_id = collection.insert_one(vidcon_dict).inserted_id
+        if inserted_id:
+            new_vidcon = collection.find_one({"_id": inserted_id})
+            return convert_id(new_vidcon)
+        
+        raise HTTPException(status_code=404, detail=f'Failed to add VidCon')
+    else:
+        raise HTTPException(status_code=422, detail="All parameters are required")
 
-		return vidcon_dict
-	raise HTTPException(
-		status_code=404, detail=f'item not found'
-	)
-# put gabisa pake web browser testnya
 @router.put('/videoconference')
-async def update_menu(vidcon: VidCon, current_user: auth.User = Depends(auth.get_current_active_user)):
-	vidcon_dict = vidcon.dict()
-	vidcon_found = False
-	for vidcon_idx, vidcon_item in enumerate(data['videoconference']):
-		if vidcon_item['consultationID'] == vidcon_dict['consultationID']:
-			vidcon_found = True
-			data['videoconference'][vidcon_idx]=vidcon_dict
-			
-			with open(json_filename,"w") as write_file:
-				json.dump(data, write_file)
-			return "updated"
-	
-	if not vidcon_found:
-		return "Menu consultationID not found."
-	raise HTTPException(
-		status_code=404, detail=f'item not found'
-	)
+async def update_vidcon(vidcon: VidCon, current_user: auth.User = Depends(auth.get_current_active_user)):
+    vidcon_dict = vidcon.dict()
+    result = collection.replace_one({"consultationID": vidcon_dict['consultationID']}, vidcon_dict)
+    if result.modified_count > 0:
+        return "Updated"
+    return "VidCon for consultationID not found."
 
 @router.delete('/videoconference/{consultation_id}')
-async def delete_menu(consultation_id: int, current_user: auth.User = Depends(auth.get_current_active_user)):
-
-	vidcon_found = False
-	for vidcon_idx, vidcon_item in enumerate(data['videoconference']):
-		if vidcon_item['consultationID'] == consultation_id:
-			vidcon_found = True
-			data['videoconference'].pop(vidcon_idx)
-			
-			with open(json_filename,"w") as write_file:
-				json.dump(data, write_file)
-			return "updated"
-	
-	if not vidcon_found:
-		return "Video conference link for consultationID is not found."
-	raise HTTPException(
-		status_code=404, detail=f'item not found'
-	)
+async def delete_vidcon(consultation_id: int, current_user: auth.User = Depends(auth.get_current_active_user)):
+    result = collection.delete_one({"consultationID": consultation_id})
+    if result.deleted_count > 0:
+        return "Deleted"
+    return "VidCon for consultationID not found."

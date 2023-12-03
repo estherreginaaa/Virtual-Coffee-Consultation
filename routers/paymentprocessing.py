@@ -1,8 +1,7 @@
 from fastapi import Depends, FastAPI, HTTPException, APIRouter
-import json
 from pydantic import BaseModel
+from pymongo import MongoClient
 from routers import auth
-
 
 class Payment(BaseModel):
     consultationID: int
@@ -11,82 +10,59 @@ class Payment(BaseModel):
     amount: int
     status: str
 
-json_filename="paymentprocessing.json"
-
-with open(json_filename,"r") as read_file:
-	data = json.load(read_file)
-
-# app = FastAPI()
+app = FastAPI()
 router = APIRouter()
 
-@router.get('/paymentprocessing')
-async def read_all_payment(current_user: auth.User = Depends(auth.get_current_active_user)):
-	return data['paymentprocessing']
+client = MongoClient("mongodb+srv://admin:admin123@cluster0.07z4doa.mongodb.net/?retryWrites=true&w=majority")
+db = client["VirtualCoffeeConsultation"]
+collection = db["paymentprocessing"]
 
+def convert_id(payment):
+    payment['_id'] = str(payment['_id'])
+    return payment
+
+@router.get('/paymentprocessing')
+async def read_all_payment( current_user: auth.User = Depends(auth.get_current_active_user)):
+    return list(map(convert_id, collection.find()))
 
 @router.get('/paymentprocessing/{consultation_id}')
-async def read_vidcon(consultation_id: int,current_user: auth.User = Depends(auth.get_current_active_user) ):
-	for payment in data['paymentprocessing']:
-		print(payment)
-		if payment['consultationID'] == consultation_id:
-			return payment
-	raise HTTPException(
-		status_code=404, detail=f'menu not found'
-	)
+async def read_payment(consultation_id: int, current_user: auth.User = Depends(auth.get_current_active_user)):
+    payment = collection.find_one({"consultationID": consultation_id})
+    if payment:
+        return convert_id(payment)
+    raise HTTPException(status_code=404, detail=f'Payment with consultationID {consultation_id} not found')
 
 @router.post('/paymentprocessing')
-async def add_menu(payment: Payment, current_user: auth.User = Depends(auth.get_current_active_user)):
-	payment_dict = payment.dict()
-	payment_found = False
-	for payment in data['paymentprocessing']:
-		if payment['consultationID'] == payment_dict['consultationID']:
-			payment_found = True
-			return "Consultation consultationID "+str(payment_dict['consultationID'])+" exists."
-	
-	if not payment_found:
-		data['paymentprocessing'].append(payment_dict)
-		with open(json_filename,"w") as write_file:
-			json.dump(data, write_file)
+async def add_payment(payment: Payment, current_user: auth.User = Depends(auth.get_current_active_user)):
+    payment_dict = payment.dict()
+    required_params = Payment.__annotations__.keys()
+    provided_params = payment_dict.keys()
+    
+    if set(required_params).issubset(provided_params):
+        existing_payment = collection.find_one({"consultationID": payment_dict['consultationID']})
+        if existing_payment:
+            return f"Payment for consultationID {payment_dict['consultationID']} exists."
+        
+        inserted_id = collection.insert_one(payment_dict).inserted_id
+        if inserted_id:
+            new_payment = collection.find_one({"_id": inserted_id})
+            return convert_id(new_payment)
+        
+        raise HTTPException(status_code=404, detail=f'Failed to add payment')
+    else:
+        raise HTTPException(status_code=422, detail="All parameters are required")
 
-		return payment_dict
-	raise HTTPException(
-		status_code=404, detail=f'item not found'
-	)
-# put gabisa pake web browser testnya
 @router.put('/paymentprocessing')
-async def update_menu(payment: Payment, current_user: auth.User = Depends(auth.get_current_active_user)):
-	payment_dict = payment.dict()
-	payment_found = False
-	for payment_idx, payment_item in enumerate(data['paymentprocessing']):
-		if payment_item['consultationID'] == payment_dict['consultationID']:
-			payment_found = True
-			data['paymentprocessing'][payment_idx]=payment_dict
-			
-			with open(json_filename,"w") as write_file:
-				json.dump(data, write_file)
-			return "updated"
-	
-	if not payment_found:
-		return "Menu consultationID not found."
-	raise HTTPException(
-		status_code=404, detail=f'item not found'
-	)
+async def update_payment(payment: Payment, current_user: auth.User = Depends(auth.get_current_active_user)):
+    payment_dict = payment.dict()
+    result = collection.replace_one({"consultationID": payment_dict['consultationID']}, payment_dict)
+    if result.modified_count > 0:
+        return "Updated"
+    return "Payment for consultationID not found."
 
 @router.delete('/paymentprocessing/{consultation_id}')
-async def delete_menu(consultation_id: int, current_user: auth.User = Depends(auth.get_current_active_user)):
-
-	payment_found = False
-	for payment_idx, payment_item in enumerate(data['paymentprocessing']):
-		if payment_item['consultationID'] == consultation_id:
-			payment_found = True
-			data['paymentprocessing'].pop(payment_idx)
-			
-			with open(json_filename,"w") as write_file:
-				json.dump(data, write_file)
-			return "updated"
-	
-	if not payment_found:
-		return "Video conference link for consultationID is not found."
-	raise HTTPException(
-		status_code=404, detail=f'item not found'
-	)
+async def delete_payment(consultation_id: int, current_user: auth.User = Depends(auth.get_current_active_user)):
+    result = collection.delete_one({"consultationID": consultation_id})
+    if result.deleted_count > 0:
+        return "Deleted"
+    return "Payment for consultationID not found."

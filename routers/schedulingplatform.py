@@ -1,91 +1,63 @@
 from fastapi import Depends, FastAPI, HTTPException, APIRouter
-import json
 from pydantic import BaseModel
+from pymongo import MongoClient
 from routers import auth
 
 class Schedule(BaseModel):
-	consultationID: int
-	advisorID: int
-	participantID: int
-	consultationDate: str
-	consultationTime: str
-
-json_filename="schedulingplatform.json"
-
-with open(json_filename,"r") as read_file:
-	data = json.load(read_file)
+    consultationID: int
+    advisorID: int
+    participantID: int
+    consultationDate: str
+    consultationTime: str
 
 app = FastAPI()
 router = APIRouter()
 
+client = MongoClient("mongodb+srv://admin:admin123@cluster0.07z4doa.mongodb.net/?retryWrites=true&w=majority")
+db = client["VirtualCoffeeConsultation"]
+collection = db["schedulingplatform"]
+
+def convert_id(schedule):
+    schedule['_id'] = str(schedule['_id'])
+    return schedule
+
 @router.get('/schedulingplatform')
 async def read_all_scheduling_platform(current_user: auth.User = Depends(auth.get_current_active_user)):
-	return data['schedulingplatform']
-
+    return list(map(convert_id, collection.find()))
 
 @router.get('/schedulingplatform/{consultation_id}')
 async def read_schedulingplatform(consultation_id: int, current_user: auth.User = Depends(auth.get_current_active_user)):
-	for scheduling in data['schedulingplatform']:
-		print(scheduling)
-		if scheduling['consultationID'] == consultation_id:
-			return scheduling
-	raise HTTPException(
-		status_code=404, detail=f'menu not found'
-	)
+    scheduling = collection.find_one({"consultationID": consultation_id})
+    if scheduling:
+        return convert_id(scheduling)
+    raise HTTPException(status_code=404, detail=f'Consultation with ID {consultation_id} not found')
 
 @router.post('/schedulingplatform')
 async def add_menu(schedule: Schedule, current_user: auth.User = Depends(auth.get_current_active_user)):
-	schedule_dict = schedule.dict()
-	schedule_found = False
-	for scheduling in data['schedulingplatform']:
-		if scheduling['consultationID'] == schedule_dict['consultationID']:
-			schedule_found = True
-			return "Consultation consultationID "+str(schedule_dict['consultationID'])+" exists."
-	
-	if not schedule_found:
-		data['schedulingplatform'].append(schedule_dict)
-		with open(json_filename,"w") as write_file:
-			json.dump(data, write_file)
+    schedule_dict = schedule.dict()
+    existing_schedule = collection.find_one({"consultationID": schedule_dict['consultationID']})
+    if existing_schedule:
+        return f"Consultation consultationID {schedule_dict['consultationID']} exists."
+    
+    inserted_id = collection.insert_one(schedule_dict).inserted_id
+    if inserted_id:
+        # Retrieve the inserted document to return
+        new_schedule = collection.find_one({"_id": inserted_id})
+        return convert_id(new_schedule)
+    
+    raise HTTPException(status_code=404, detail=f'Failed to add item')
 
-		return schedule_dict
-	raise HTTPException(
-		status_code=404, detail=f'item not found'
-	)
-# put gabisa pake web browser testnya
 @router.put('/schedulingplatform')
 async def update_menu(schedule: Schedule, current_user: auth.User = Depends(auth.get_current_active_user)):
-	schedule_dict = schedule.dict()
-	schedule_found = False
-	for schedule_idx, schedule_item in enumerate(data['schedulingplatform']):
-		if schedule_item['consultationID'] == schedule_dict['consultationID']:
-			item_found = True
-			data['schedulingplatform'][schedule_idx]=schedule_dict
-			
-			with open(json_filename,"w") as write_file:
-				json.dump(data, write_file)
-			return "updated"
-	
-	if not schedule_found:
-		return "Menu consultationID not found."
-	raise HTTPException(
-		status_code=404, detail=f'item not found'
-	)
+    schedule_dict = schedule.dict()
+    result = collection.replace_one({"consultationID": schedule_dict['consultationID']}, schedule_dict)
+    if result.modified_count > 0:
+        return "Updated"
+    return "Menu consultationID not found."
 
 @router.delete('/schedulingplatform/{consultation_id}')
 async def delete_menu(consultation_id: int, current_user: auth.User = Depends(auth.get_current_active_user)):
-
-	schedule_found = False
-	for schedule_idx, schedule_item in enumerate(data['schedulingplatform']):
-		if schedule_item['consultationID'] == consultation_id:
-			schedule_found = True
-			data['schedulingplatform'].pop(schedule_idx)
-			
-			with open(json_filename,"w") as write_file:
-				json.dump(data, write_file)
-			return "updated"
-	
-	if not schedule_found:
-		return "Menu consultationID not found."
-	raise HTTPException(
-		status_code=404, detail=f'item not found'
-	)
+    result = collection.delete_one({"consultationID": consultation_id})
+    if result.deleted_count > 0:
+        return "Deleted"
+    return "Menu consultationID not found."
