@@ -15,7 +15,7 @@ collection = db["interactionLog"]
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-friend_api_url = "http://127.0.0.1:8888"
+virtual_hotel_tour = "http://127.0.0.1:8888"
 
 username = "admin"
 password = "admin200"
@@ -30,7 +30,7 @@ class Item(BaseModel):
 
 def get_access_token():
     login_payload = {"username": username, "password": password}
-    token_response = requests.post(f"{friend_api_url}/token", data=login_payload)
+    token_response = requests.post(f"{virtual_hotel_tour}/token", data=login_payload)
     
     if token_response.status_code == 200:
         return token_response.json().get("access_token")
