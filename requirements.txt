@@ -8,7 +8,7 @@ fastapi==0.95.0
 h11==0.14.0
 httpcore==0.17.2
 httpx==0.24.1
-idna==3.4
+idna==2.10
 uvicorn==0.20.0
 passlib==1.7.4
 pyasn1==0.4.8
