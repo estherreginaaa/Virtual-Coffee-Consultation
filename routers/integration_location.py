@@ -12,8 +12,8 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 friend_api_url = "http://127.0.0.1:8888"
 
 
-username = "angela"
-password = "angelag20123"
+username = "admin"
+password = "admin200"
 
 def get_access_token():
     login_payload = {"username": username, "password": password}
@@ -24,12 +24,6 @@ def get_access_token():
     else:
         raise HTTPException(status_code=token_response.status_code, detail="Login failed")
 
-def get_api_data(url: str):
-    headers = {
-        'Authorization': f'Bearer {get_access_token()}'
-    }
-    response = requests.get(url, headers=headers)
-    return response.json()
 
 def get_and_filter_location():
     try:

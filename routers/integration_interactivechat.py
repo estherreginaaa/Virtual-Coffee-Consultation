@@ -17,8 +17,8 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 friend_api_url = "http://127.0.0.1:8888"
 
-username = "angela"
-password = "angelag20123"
+username = "admin"
+password = "admin200"
 
 class Item(BaseModel):
     interactionLog_id: int
