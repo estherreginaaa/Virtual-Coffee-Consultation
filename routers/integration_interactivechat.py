@@ -15,7 +15,7 @@ collection = db["interactionLog"]
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-virtual_hotel_tour = "http://127.0.0.1:8888"
+virtual_hotel_tour = "http://virtualhoteltourservices.c4aaf6hnfxhhbtb5.southeastasia.azurecontainer.io:8000"
 
 username = "admin"
 password = "admin200"
