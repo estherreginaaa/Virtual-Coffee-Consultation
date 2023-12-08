@@ -57,7 +57,7 @@ def store_interactionLog_in_mongodb(item_dict: dict):
     collection.insert_one(item_dict)
 
 @router.get("/get_interactionLog")
-async def get_interactionLog():
+async def get_interactionLog(current_user: auth.User = Depends(auth.get_current_active_user)):
     all_interaction_logs = list(collection.find({}, {'_id': 0}))
 
     if not all_interaction_logs:
