@@ -9,7 +9,7 @@ router = APIRouter()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-virtual_hotel_tour = "http://virtualhoteltourservices.c4aaf6hnfxhhbtb5.southeastasia.azurecontainer.io:8000"
+virtual_hotel_tour = "http://virtualhoteltourservice.bug5gmc4dkc5g2d2.southeastasia.azurecontainer.io:8000"
 
 
 username = "admin"
